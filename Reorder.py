@@ -183,6 +183,8 @@ while len(BegNodeTable)!=0:
 
     if(BegNodeTable==[]):
         BegNodeTable = list(set(NextLv))
+        for i in BegNodeTable:
+                print(i.Reg)
         NextLv = []
         PacketedIns.append(Packet)
         Packet = []
@@ -193,6 +195,7 @@ PacketedIns = PacketedIns[1:]
 
 #Reorder instruction packet based of funtional unit {Mem|Logic|FPM|FPA|Mul|Add}
 RepackedIns = []
+print(PacketedIns)
 for i in PacketedIns:
     repack = ["NOP"]*6
     for j in i:

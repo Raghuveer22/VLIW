@@ -1,0 +1,75 @@
+# test.vsm - Test Bench for VLIW Compiler
+# This test bench focuses on exercising WAW and WAR dependencies
+# across different functional units
+
+# ========== Basic Dependencies ==========
+# Simple RAW dependency
+ADD R1,R0,R0    # R1 = R0 + R0 (Initialize R1 to 0)
+ADD R2,R1,R0    # R2 depends on R1 (RAW)
+
+# ========== WAW Dependencies ==========
+# Test WAW dependency with same functional unit
+ADD R3,R0,R0    # R3 = 0
+ADD R3,R2,R0    # WAW: writing to R3 again
+
+# Test WAW dependency with different functional units
+ADD R4,R0,R0    # R4 = 0
+MUL R4,R3,R2,R0    # WAW: writing to R4 from different functional unit
+                   # Note: MUL has 4 operands (dest, dest2, src1, src2)
+
+# ========== WAR Dependencies ==========
+# Test WAR dependency
+ADD R5,R1,R2    # Uses R1 and R2 as sources
+ADD R1,R0,R0    # WAR: Tries to overwrite R1 which is read by previous instruction
+
+# ========== Complex Dependencies ==========
+# Chain of dependencies
+ADD R6,R0,R0    # Initialize R6
+ADD R7,R6,R0    # Depends on R6
+ADD R8,R7,R0    # Depends on R7
+ADD R6,R8,R0    # WAW dependency with R6, WAR dependency with previous R6 usage
+
+# ========== Multiple Functional Units ==========
+# Test the use of multiple functional units in parallel
+ADD R9,R0,R0    # R9 = 0
+MUL R10,R11,R9,R0   # R10, R11 = R9 * R0, RAW dependency on R9
+LDR R12,#10     # Load from memory, can run in parallel with arithmetic
+STR R9,#20      # Store to memory, RAW dependency on R9
+
+# ========== Stress Test ==========
+# Test multiple dependencies across different functional units
+ADD R13,R0,R0          # R13 = 0
+MUL R14,R15,R13,R0     # R14, R15 = R13 * R0
+FADD R16,R14,R0        # R16 depends on R14
+FMUL R17,R18,R16,R0    # R17, R18 depend on R16
+AND R19,R17,R0         # R19 depends on R17
+OR R20,R19,R0          # R20 depends on R19
+XOR R21,R20,R0         # R21 depends on R20
+
+# ========== Parallel Execution ==========
+# Independent instructions that can execute in parallel
+ADD R22,R0,R0          # Independent
+MUL R23,R24,R0,R0      # Independent
+FADD R25,R0,R0         # Independent
+AND R26,R0,R0          # Independent
+LDR R27,#30            # Independent
+STR R0,#40             # Independent
+
+# ========== Cycle Utilization ==========
+# Test if compiler can utilize all functional units
+ADD R28,R0,R0          # Adder
+MUL R29,R30,R0,R0      # Multiplier (4 operands)
+FADD R1,R0,R0          # FPA
+FMUL R2,R3,R0,R0       # FPM (4 operands)
+AND R4,R0,R0           # Logic Unit
+LDR R5,#50             # Memory Unit
+
+# ========== MUL-specific WAW and WAR ==========
+# Test WAW and WAR specifically for MUL which writes to two registers
+ADD R6,R0,R0           # Initialize R6
+MUL R7,R8,R6,R0        # MUL writes to R7 and R8
+ADD R7,R0,R0           # WAW hazard with R7 from MUL
+ADD R8,R0,R0           # WAW hazard with R8 from MUL
+
+ADD R9,R7,R8           # RAW dependency on both MUL output registers
+MUL R10,R7,R8,R9       # RAW on R7, R8 and WAR with R7, R8 if scheduled with previous ADD
