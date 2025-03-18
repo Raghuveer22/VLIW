@@ -106,7 +106,7 @@ def reorder_instructions(node_table:List[InstructionNode]):
             packet.append(leader.instruction_word)
             
         # If dependencies are not cleared or unit is busy, append leader to next level
-        elif leader.parents == [] and ((not waw_cleared) or (not war_cleared) or (not unit_free)):
+        if leader.parents == [] and ((not waw_cleared) or (not war_cleared) or (not unit_free)):
             next_level.append(leader)
             
         # If leader has no parent dependencies but is not ready to execute, decrease its delay and append back to next level
@@ -125,8 +125,7 @@ def reorder_instructions(node_table:List[InstructionNode]):
         # If node table is empty, update it with next level and append current packet to packeted instructions
         if node_table == []:
             node_table = list(set(next_level))
-            for i in node_table:
-                print(i.register)
+            
             packeted_instructions.append(packet)
             packet = []
             next_level = []
@@ -135,34 +134,56 @@ def reorder_instructions(node_table:List[InstructionNode]):
     # First instruction is NOP because of dummy registers
     packeted_instructions = packeted_instructions[1:]
     repacked_instructions=[]
-    
-    return packeted_instructions
+    for i in packeted_instructions:
+        repack = ["NOP"]*6
+        for j in i:
+            for k in range(6):
+                if(j.split(' ')[0] in config.FUNCTIONAL_UNITS[k]):
+                    repack[k] = j
+        repacked_instructions.append(repack)
+    print(repacked_instructions)
+    return repacked_instructions
 
 def convert_to_binary(packeted_instructions):
+
+    # def ToBin(reg,numDig=5):
+    #     binNum = ""
+    #     while(reg>0):
+    #         binNum = binNum + str(reg%2)
+    #         reg = int(reg/2)
+    #     binNum = binNum + "0"*(numDig-len(binNum))
+    #     return(binNum[::-1])
+
     # Convert instructions to binary format
-    binary_instructions = []
+    binary_packeted_instructions = []
     
-    for instruction in packeted_instructions:
-        if instruction != "NOP":
-            print(instruction)
-            opcode = config.INSTRUCTION_TYPES[instruction.split(' ')[0]]
-            if instruction.split(' ')[0] not in ["MOV", "LDR", "STR"]:
-                registers = "".join([bin(int(register[1:]))[2:].zfill(5) for register in instruction.split(' ')[1].split(',')])
-            else:
-                tmp = [int(register[1:]) for register in instruction.split(' ')[1].split(',')]
-                if opcode == "01":
-                    registers = bin(tmp[0])[2:].zfill(5) + bin(tmp[1])[2:].zfill(25)
+    for bundle in packeted_instructions:
+        binary_packeted_instruction = []
+        for instruction in bundle:
+            binary_instruction="" 
+            if instruction != "NOP":
+                print(instruction)
+                opcode = config.INSTRUCTION_TYPES[instruction.split(' ')[0]]
+                if instruction.split(' ')[0] not in config.FUNCTIONAL_UNITS[5]:#memory
+                    registers = "".join([bin(int(register[1:]))[2:].zfill(5) for register in instruction.split(' ')[1].split(',')])
                 else:
-                    registers = bin(tmp[0])[2:].zfill(5) + bin(tmp[1])[2:].zfill(10)
-                    
-            binary_instruction = opcode + registers
-            binary_instruction += "0" * (32 - len(binary_instruction))
-        else:
-            binary_instruction = "0" * 32
-            
-        binary_instructions.append(binary_instruction)
-        
-    return binary_instructions
+                    tmp = [int(register[1:]) for register in instruction.split(' ')[1].split(',')]
+                    if opcode == "01":
+                        registers = bin(tmp[0])[2:].zfill(5) + bin(tmp[1])[2:].zfill(25)
+                    else:
+                        registers = bin(tmp[0])[2:].zfill(5) + bin(tmp[1])[2:].zfill(10)
+                        
+                binary_instruction = opcode + registers
+                binary_instruction += "0" * (32 - len(binary_instruction))
+            else:
+                binary_instruction = "0" * 32
+                
+            binary_packeted_instruction.append(binary_instruction)
+        binary_packeted_instructions.append(binary_packeted_instruction)  
+    print(binary_packeted_instructions)
+    binary_packeted_instructions = ["192'b"+("".join(i)) for i in binary_packeted_instructions]
+    binary_packeted_instructions = ["InstructionMem[%i]="%i + binary_packeted_instructions[i]+";" for i in range(len(binary_packeted_instructions))]
+    return binary_packeted_instructions
 
 def generate_testbench(binary_instructions):
     # Generate testbench file

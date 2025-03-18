@@ -1,5 +1,5 @@
 # node.py
-
+import config
 class InstructionNode:
     def __init__(self, register, instruction_word):
         self.register = register
@@ -32,6 +32,7 @@ class InstructionNode:
 
     def add_instruction(self, instruction):
         self.instruction = instruction
+        self.delay = config.INSTRUCTION_DELAYS[instruction]
 
     def print_node(self):
         print(f"Register Name: {self.register}")
