@@ -4,7 +4,7 @@ A simple VLIW processor with an integrated compiler written in Verilog and Pytho
 ## test.vsm
 This file is an input file with instructions in serial order
 
-## Reorder.py
+## Compiler/main.py
 This is the main file to be run which reads test.vsm and reorders the instructions into packets such that maximum number of functional units are used at once, it also takes care of all hazards RAW,WAR,WAW.
 
 ## About The Processor
